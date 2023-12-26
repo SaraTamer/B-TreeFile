@@ -29,7 +29,11 @@ public:
     // this method should display content of the file, each node in a line.
     int SearchARecord (char* filename, int RecordID);
 
-    void loadFile();
+    // needed methods
+    void loadFile(char* filename);
+    int getRecSize(int recNum);
+    void balanceTree(vector<pair<int , int>>);
+    void updateParents(vector<pair<int , int>> parentsPositions);
 };
 
 
