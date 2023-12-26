@@ -1,10 +1,9 @@
 #include <iostream>
 #include <fstream>
-#include <string>
 using namespace std;
 
-
-void CreateIndexFileFile (const string& filename, int numberOfRecords, int m) {
+// Function to create an initial index file with specified structure
+void CreateIndexFileFile(const char* filename, int numberOfRecords, int m) {
     // Open the file for writing
     ofstream file(filename);
 
@@ -13,9 +12,9 @@ void CreateIndexFileFile (const string& filename, int numberOfRecords, int m) {
 
     // Loop through each record and write a line to the file
     for (int i = 0; i < numberOfRecords; i++) {
-        for(int j = 0; j <= (m * 2) + 2; j++) {
+        for (int j = 0; j <= (m * 2) + 2; j++) {
             // Write record ID in the second column
-            if(j == 1 && i != (numberOfRecords - 1)) {
+            if (j == 1 && i != (numberOfRecords - 1)) {
                 file << count << "\t";
                 count++;
                 continue;
@@ -30,9 +29,10 @@ void CreateIndexFileFile (const string& filename, int numberOfRecords, int m) {
 
 int main() {
     // Get file name from user
+    const int maxFileNameSize = 100;
+    char fileName[maxFileNameSize];
     cout << "Enter the file name: ";
-    string fileName;
-    cin >> fileName;
+    cin.getline(fileName, maxFileNameSize);
 
     // Get the number of records from the user
     cout << "Enter the number of records: ";
@@ -48,5 +48,7 @@ int main() {
     CreateIndexFileFile(fileName, numberOfRecords, m);
 
 
+
     return 0;
 }
+
