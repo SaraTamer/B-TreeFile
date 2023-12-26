@@ -9,7 +9,34 @@ using namespace std;
 
 BTreeIndex::BTreeIndex() = default;
 
+void BTreeIndex::CreateIndexFileFile (char* filename, int numberOfRecords, int m)
+{
+    // Open the file for writing
+    ofstream file(filename);
 
+    // Counter to keep track of record IDs
+    int count = 1;
+
+    // Loop through each record and write a line to the file
+    for (int i = 0; i < numberOfRecords; i++) {
+        for (int j = 0; j <= (m * 2) + 2; j++) {
+            // Write record ID in the second column
+            if (j == 1 && i != (numberOfRecords - 1)) {
+                file << count << "\t";
+                count++;
+                continue;
+            }
+
+            // Fill other columns with -1
+            if(j != (m * 2) + 2)
+                file << -1 << "\t";
+            else
+                file << -1;
+        }
+        if(i < numberOfRecords-1)
+            file << "\n";
+    }
+}
 void BTreeIndex::DeleteRecordFromIndex (char* filename, int RecordID)
 {
     loadFile(filename);
