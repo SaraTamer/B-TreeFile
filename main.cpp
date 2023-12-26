@@ -1,6 +1,10 @@
-#include <iostream>
 
+#include "BTreeIndex.h"
+#include "bits/stdc++.h"
+
+using namespace std;
 int main() {
-    std::cout << "Hello, World!" << std::endl;
+    BTreeIndex bTreeIndex;
+    bTreeIndex.loadFile();
     return 0;
 }
