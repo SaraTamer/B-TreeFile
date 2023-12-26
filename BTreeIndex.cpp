@@ -9,34 +9,6 @@ using namespace std;
 
 BTreeIndex::BTreeIndex() = default;
 
-void BTreeIndex::CreateIndexFileFile (char* filename, int numberOfRecords, int m)
-{
-    // Open the file for writing
-    ofstream file(filename);
-
-    // Counter to keep track of record IDs
-    int count = 1;
-
-    // Loop through each record and write a line to the file
-    for (int i = 0; i < numberOfRecords; i++) {
-        for (int j = 0; j <= (m * 2) + 2; j++) {
-            // Write record ID in the second column
-            if (j == 1 && i != (numberOfRecords - 1)) {
-                file << count << "\t";
-                count++;
-                continue;
-            }
-
-            // Fill other columns with -1
-            if(j != (m * 2) + 2)
-                file << -1 << "\t";
-            else
-                file << -1;
-        }
-        if(i < numberOfRecords-1)
-            file << "\n";
-    }
-}
 void BTreeIndex::DeleteRecordFromIndex (char* filename, int RecordID)
 {
     loadFile(filename);
@@ -239,4 +211,103 @@ void BTreeIndex::loadFile(char* filename)
 
     }
     indexFile.close();
+}
+void BTreeIndex::CreateIndexFileFile(char *filename, int numberOfRecords, int m)
+{
+    numRecords = numberOfRecords;
+    slots = (m * 2) + 2;
+    // Open the file for writing in binary mode
+    indexFile.open(filename, ios::out | ios::binary);
+
+    if (!indexFile.is_open())
+    {
+        cout << "Could not open index file" << endl;
+        return;
+    }
+
+    // Counter to keep track of record IDs
+    int count = 1;
+
+    // Loop through each record and write a line to the file
+    for (int i = 0; i < numberOfRecords; i++)
+    {
+        for (int j = 0; j <= (m * 2) + 2; j++)
+        {
+            // Write record ID in the second column
+            if (j == 1 && i != (numberOfRecords - 1))
+            {
+                indexFile.write(reinterpret_cast<char *>(&count), sizeof(count));
+                indexFile.write("\t", strlen("\t") + 1);
+                count++;
+                continue;
+            }
+
+            // Fill other columns with -1
+            int value = -1;
+            indexFile.write(reinterpret_cast<char *>(&value), sizeof(value));
+
+            // Write a tab character unless it's the last column
+            if (j < (m * 2) + 2)
+            {
+                indexFile.write("\t", strlen("\t") + 1);
+            }
+        }
+
+        // Write a newline character unless it's the last column
+        if (i < numberOfRecords - 1)
+        {
+            indexFile.write("\n", strlen("\n") + 1);
+        }
+    }
+
+    // Close the file
+    indexFile.close();
+}
+void BTreeIndex::DisplayBTreeContent(char *filename)
+{
+    // Open the file for reading in binary mode
+    indexFile.open(filename, ios::in | ios::binary);
+
+    if (!indexFile.is_open())
+    {
+        cout << "Could not open index file for reading" << endl;
+        return;
+    }
+
+    string data = "";
+
+    // Read the file content
+    while (!indexFile.fail())
+    {
+        for (int i = 0; i < numRecords; i++)
+        {
+            for (int j = 0; j <= slots; j++)
+            {
+                int value;
+                indexFile.read(reinterpret_cast<char *>(&value), sizeof(value));
+                data += to_string(value);
+
+                string ch;
+                indexFile.read((char *)(&ch), strlen("\t") + 1);
+
+                // print a tab character unless it's the last column
+                if (j < slots)
+                {
+                    data += "\t";
+                }
+            }
+
+            // print a newline character unless it's the last column
+            if (i < numRecords - 1)
+            {
+                data += "\n";
+            }
+        }
+    }
+
+    // Close the file
+    indexFile.close();
+
+    cout << data;
+    return;
 }

@@ -30,6 +30,7 @@ int main() {
     // Create an initial index file with user-specified values
     bTreeIndex.CreateIndexFileFile(fileName, numberOfRecords, m);
     bTreeIndex.loadFile(fileName);
+    bTreeIndex.DisplayBTreeContent(fileName);
 
 
     return 0;
