@@ -18,7 +18,7 @@ class BTreeIndex {
 private:
     fstream indexFile;
     vector<pair<int, vector<node>>> nodes;
-    int numRecords, slots;
+    int numRecords, slots, M;
 public:
     // project features
     BTreeIndex();

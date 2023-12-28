@@ -1,15 +1,11 @@
 
-#include "BTreeIndex.h"
+#include "BTreeIndex.cpp"
 #include "bits/stdc++.h"
 
 using namespace std;
-int main() {
+int main()
+{
     BTreeIndex bTreeIndex;
-//    string myString = "indexFile.txt";
-//    char charArray[myString.size() + 1];
-//    strcpy(charArray, myString.c_str());
-//
-//    bTreeIndex.DeleteRecordFromIndex(charArray, 8);
 
     // Get file name from user
     const int maxFileNameSize = 100;
@@ -29,9 +25,8 @@ int main() {
 
     // Create an initial index file with user-specified values
     bTreeIndex.CreateIndexFileFile(fileName, numberOfRecords, m);
-    bTreeIndex.loadFile(fileName);
+    // bTreeIndex.loadFile(fileName);
     bTreeIndex.DisplayBTreeContent(fileName);
-
 
     return 0;
 }

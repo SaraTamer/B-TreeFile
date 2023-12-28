@@ -9,44 +9,44 @@ using namespace std;
 
 BTreeIndex::BTreeIndex() = default;
 
-void BTreeIndex::DeleteRecordFromIndex (char* filename, int RecordID)
+void BTreeIndex::DeleteRecordFromIndex(char *filename, int RecordID)
 {
     loadFile(filename);
-    ///TODO: if recordId is not found , return;
+    /// TODO: if recordId is not found , return;
 
-    vector<pair<int , int>> parentsPosition;
+    vector<pair<int, int>> parentsPosition;
 
     // deletion step
-    if(nodes[1].first == 0)
+    if (nodes[1].first == 0)
     {
-        for(int i = 0; i < nodes[1].second.size(); i++)
+        for (int i = 0; i < nodes[1].second.size(); i++)
         {
-            if(nodes[1].second[i].index == RecordID)
+            if (nodes[1].second[i].index == RecordID)
             {
                 nodes[1].second.erase(nodes[1].second.begin() + i);
-                nodes[1].second.push_back({-1,-1});
+                nodes[1].second.push_back({-1, -1});
             }
         }
     }
     else
     {
         int i = 1;
-        bool  flag = true;
-        while(flag)
+        bool flag = true;
+        while (flag)
         {
-            for(int j = 0; j < nodes[1].second.size(); j++)
+            for (int j = 0; j < nodes[1].second.size(); j++)
             {
-                if(nodes[i].second[j].index >= RecordID && nodes[i].first == 1)
+                if (nodes[i].second[j].index >= RecordID && nodes[i].first == 1)
                 {
-                    parentsPosition.emplace_back(i,j);
+                    parentsPosition.emplace_back(i, j);
                     i = nodes[i].second[j].reference;
                     j = -1;
                 }
-                if(nodes[i].second[j].index == RecordID && nodes[i].first == 0)
+                if (nodes[i].second[j].index == RecordID && nodes[i].first == 0)
                 {
                     nodes[i].second.erase(nodes[i].second.begin() + j);
-                    nodes[i].second.push_back({-1,-1});
-                    if(getRecSize(i) < nodes[i].second.size() / 2)
+                    nodes[i].second.push_back({-1, -1});
+                    if (getRecSize(i) < nodes[i].second.size() / 2)
                     {
                         balanceTree(parentsPosition);
                     }
@@ -58,51 +58,49 @@ void BTreeIndex::DeleteRecordFromIndex (char* filename, int RecordID)
         updateParents(parentsPosition);
     }
     // deletion step done
-
-
 }
-void BTreeIndex::updateParents(vector<pair<int , int>> parentsPositions)
+void BTreeIndex::updateParents(vector<pair<int, int>> parentsPositions)
 {
-    for(int k = parentsPositions.size() - 1; k >= 0; k--)
+    for (int k = parentsPositions.size() - 1; k >= 0; k--)
     {
         // handle parent reference
         int i = parentsPositions[k].first;
         int j = parentsPositions[k].second;
         int recNum = nodes[i].second[j].reference;
-        int prevBrotherRecNum = nodes[i].second[j-1].reference;
-        int nextBrotherRecNum = nodes[i].second[j-1].reference;
-        if(nodes[recNum].first == -1)
+        int prevBrotherRecNum = nodes[i].second[j - 1].reference;
+        int nextBrotherRecNum = nodes[i].second[j - 1].reference;
+        if (nodes[recNum].first == -1)
         {
             nodes[i].second.erase(nodes[i].second.begin() + j);
-            nodes[i].second.push_back({-1,-1});
+            nodes[i].second.push_back({-1, -1});
         }
         else
         {
             nodes[i].second[j].index = nodes[recNum].second[getRecSize(recNum) - 1].index;
         }
         // handle previous and next brother reference
-        if(k == parentsPositions.size() - 1)
+        if (k == parentsPositions.size() - 1)
         {
-            if(j != 0)
-                nodes[i].second[j-1].index = nodes[prevBrotherRecNum].second[getRecSize(prevBrotherRecNum) - 1].index;
+            if (j != 0)
+                nodes[i].second[j - 1].index = nodes[prevBrotherRecNum].second[getRecSize(prevBrotherRecNum) - 1].index;
             else
-                nodes[i].second[j+1].index = nodes[nextBrotherRecNum].second[getRecSize(nextBrotherRecNum) - 1].index;
+                nodes[i].second[j + 1].index = nodes[nextBrotherRecNum].second[getRecSize(nextBrotherRecNum) - 1].index;
         }
     }
 }
-void BTreeIndex::balanceTree(vector<pair<int , int>> parentsPositions)
+void BTreeIndex::balanceTree(vector<pair<int, int>> parentsPositions)
 {
     int directParentIPosition = parentsPositions[parentsPositions.size() - 1].first;
     int directParentJPosition = parentsPositions[parentsPositions.size() - 1].second;
     // if I have previous brother
-    if(directParentJPosition != 0)
+    if (directParentJPosition != 0)
     {
-        int brotherRecNum = nodes[directParentIPosition].second[directParentJPosition-1].reference;
+        int brotherRecNum = nodes[directParentIPosition].second[directParentJPosition - 1].reference;
         int myRecNum = nodes[directParentIPosition].second[directParentJPosition].reference;
         int brotherSize = getRecSize(brotherRecNum);
 
         // case of transfer element from my previous brother
-        if(brotherSize > nodes[0].second.size()/2)
+        if (brotherSize > nodes[0].second.size() / 2)
         {
             nodes[myRecNum].second.insert(nodes[myRecNum].second.begin(), nodes[brotherRecNum].second[brotherSize - 1]);
             nodes[myRecNum].second.erase(nodes[myRecNum].second.begin() + nodes[myRecNum].second.size() - 1);
@@ -117,7 +115,7 @@ void BTreeIndex::balanceTree(vector<pair<int , int>> parentsPositions)
             nodes[brotherRecNum].second.resize(nodes[myRecNum].second.size());
             // erase my record leaf
             nodes[myRecNum].first = -1;
-            for(int i = 0; i < nodes[myRecNum].second.size()/2; i++)
+            for (int i = 0; i < nodes[myRecNum].second.size() / 2; i++)
             {
                 nodes[myRecNum].second[i].index = -1;
                 nodes[myRecNum].second[i].reference = -1;
@@ -135,14 +133,14 @@ void BTreeIndex::balanceTree(vector<pair<int , int>> parentsPositions)
         int brotherSize = getRecSize(brotherRecNum);
 
         // case of transfer element from my next brother
-        if(brotherSize > nodes[0].second.size()/2)
+        if (brotherSize > nodes[0].second.size() / 2)
         {
             nodes[myRecNum].second.insert(nodes[myRecNum].second.begin() + getRecSize(myRecNum), nodes[brotherRecNum].second[0]);
             nodes[myRecNum].second.erase(nodes[myRecNum].second.end());
             nodes[brotherRecNum].second.erase(nodes[brotherRecNum].second.begin());
             nodes[brotherRecNum].second.push_back({-1, -1});
         }
-            // case of my brother has exactly = m/2, then merge me and my brother
+        // case of my brother has exactly = m/2, then merge me and my brother
         else
         {
             // merge in my next brother
@@ -150,7 +148,7 @@ void BTreeIndex::balanceTree(vector<pair<int , int>> parentsPositions)
             nodes[myRecNum].second.resize(nodes[brotherRecNum].second.size());
             // erase brother record leaf
             nodes[brotherRecNum].first = -1;
-            for(int i = 0; i < nodes[brotherRecNum].second.size()/2; i++)
+            for (int i = 0; i < nodes[brotherRecNum].second.size() / 2; i++)
             {
                 nodes[brotherRecNum].second[i].index = -1;
                 nodes[brotherRecNum].second[i].reference = -1;
@@ -164,58 +162,84 @@ void BTreeIndex::balanceTree(vector<pair<int , int>> parentsPositions)
 int BTreeIndex::getRecSize(int recNum)
 {
     int size = 0;
-    for(int i = 0; i < nodes[0].second.size(); i++)
+    for (int i = 0; i < nodes[0].second.size(); i++)
     {
-        if(nodes[recNum].second[i].index != -1)
+        if (nodes[recNum].second[i].index != -1)
         {
             size++;
         }
-        else break;
+        else
+            break;
     }
 
     return size;
 }
-void BTreeIndex::loadFile(char* filename)
+void BTreeIndex::loadFile(char *filename)
 {
-    indexFile.open(filename, ios::in);
     // empty vector
     nodes.clear();
-    int temp, recNum = 0;
+    pair<int, vector<node>> recordPair;
 
-    pair<int,vector<node>> pair;
-    nodes.push_back(pair);
+    // Open the file for reading in binary mode
+    indexFile.open(filename, ios::in | ios::binary);
 
-    while(!indexFile.fail())
+    if (!indexFile.is_open())
+    {
+        cout << "Could not open index file for reading" << endl;
+        return;
+    }
+
+    string ch;
+    node nd;
+    // Read the file content
+    for (int i = 0; i < numRecords; i++)
     {
         int indicator;
-        if(nodes[recNum].second.empty())
+        if (indexFile.read(reinterpret_cast<char *>(&indicator), sizeof(indicator)))
         {
-            indexFile >> indicator;
-            nodes[recNum].first = indicator;
-        }
-        char c = indexFile.peek();
-        if(c == '\n')
-        {
-            recNum++;
-            nodes.push_back(pair);
+            // skip the tab character
+            indexFile.read((char *)(&ch), strlen("\t") + 1);
+
+            vector<node> nds;
+            nds.clear();
+            for (int j = 0; j < M; j++)
+            {
+                int index, reference;
+
+                if (indexFile.read(reinterpret_cast<char *>(&index), sizeof(index)) &&
+                    indexFile.read((char *)(&ch), strlen("\t") + 1) &&
+                    indexFile.read(reinterpret_cast<char *>(&reference), sizeof(reference)) &&
+                    indexFile.read((char *)(&ch), strlen("\t") + 1))
+                {
+                    nd.index = index;
+                    nd.reference = reference;
+                    nds.push_back(nd);
+                }
+                else
+                {
+                    break;
+                }
+            }
+            recordPair.first = indicator;
+            recordPair.second = nds;
+
+            nodes.push_back(recordPair);
         }
         else
         {
-            node n;
-            indexFile >> temp;
-            n.index = temp;
-            indexFile >> temp;
-            n.reference = temp;
-            nodes[recNum].second.push_back(n);
+            break;
         }
-
     }
+
+    // Close the file
     indexFile.close();
+    return;
 }
 void BTreeIndex::CreateIndexFileFile(char *filename, int numberOfRecords, int m)
 {
     numRecords = numberOfRecords;
-    slots = (m * 2) + 2;
+    slots = (m * 2) + 1;
+    M = m;
     // Open the file for writing in binary mode
     indexFile.open(filename, ios::out | ios::binary);
 
@@ -231,7 +255,7 @@ void BTreeIndex::CreateIndexFileFile(char *filename, int numberOfRecords, int m)
     // Loop through each record and write a line to the file
     for (int i = 0; i < numberOfRecords; i++)
     {
-        for (int j = 0; j <= (m * 2) + 2; j++)
+        for (int j = 0; j < (m * 2) + 1; j++)
         {
             // Write record ID in the second column
             if (j == 1 && i != (numberOfRecords - 1))
@@ -247,17 +271,12 @@ void BTreeIndex::CreateIndexFileFile(char *filename, int numberOfRecords, int m)
             indexFile.write(reinterpret_cast<char *>(&value), sizeof(value));
 
             // Write a tab character unless it's the last column
-            if (j < (m * 2) + 2)
+            if (j < ((m * 2) + 1) - 1)
             {
                 indexFile.write("\t", strlen("\t") + 1);
             }
         }
-
-        // Write a newline character unless it's the last column
-        if (i < numberOfRecords - 1)
-        {
-            indexFile.write("\n", strlen("\n") + 1);
-        }
+        indexFile.write("\n", strlen("\n") + 1);
     }
 
     // Close the file
@@ -265,49 +284,19 @@ void BTreeIndex::CreateIndexFileFile(char *filename, int numberOfRecords, int m)
 }
 void BTreeIndex::DisplayBTreeContent(char *filename)
 {
-    // Open the file for reading in binary mode
-    indexFile.open(filename, ios::in | ios::binary);
+    loadFile(filename);
 
-    if (!indexFile.is_open())
+    // Iterate through the vector and print each pair
+    for (int i = 0; i < nodes.size(); i++)
     {
-        cout << "Could not open index file for reading" << endl;
-        return;
-    }
+        cout << nodes[i].first << "\t";
 
-    string data = "";
-
-    // Read the file content
-    while (!indexFile.fail())
-    {
-        for (int i = 0; i < numRecords; i++)
+        for (int j = 0; j < nodes[i].second.size(); j++)
         {
-            for (int j = 0; j <= slots; j++)
-            {
-                int value;
-                indexFile.read(reinterpret_cast<char *>(&value), sizeof(value));
-                data += to_string(value);
-
-                string ch;
-                indexFile.read((char *)(&ch), strlen("\t") + 1);
-
-                // print a tab character unless it's the last column
-                if (j < slots)
-                {
-                    data += "\t";
-                }
-            }
-
-            // print a newline character unless it's the last column
-            if (i < numRecords - 1)
-            {
-                data += "\n";
-            }
+            cout << nodes[i].second[j].index << "\t" << nodes[i].second[j].reference << "\t";
         }
+
+        cout << endl;
     }
-
-    // Close the file
-    indexFile.close();
-
-    cout << data;
     return;
 }
