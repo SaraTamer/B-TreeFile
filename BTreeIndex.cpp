@@ -3,7 +3,7 @@
 //
 
 #include "BTreeIndex.h"
-#include "bits/stdc++.h"
+#include "bits-stdc++.h"
 
 using namespace std;
 
@@ -212,4 +212,37 @@ void BTreeIndex::loadFile(char* filename)
 
     }
     indexFile.close();
+}
+int BTreeIndex ::SearchARecord(char *filename, int RecordID) {
+    loadFile(filename);
+    int leaf = nodes[1].first;
+    int refrance = 900;
+    vector<node> temp = nodes[1].second;
+    if (leaf == -1)
+        return leaf;
+    if (leaf == 0) {
+        for (int i = 0; i < temp.size(); ++i) {
+            if (RecordID == temp[i].index)
+                return temp[i].reference;
+        }
+        return -1;
+    }
+
+    while (leaf != 0) {
+        for (int i = 0; i < temp.size(); ++i) {
+            if (RecordID <= temp[i].index) {
+                refrance = temp[i].reference;
+                break;
+            }
+        }
+        if (refrance == 900)
+            return -1;
+        leaf = nodes[refrance].first;
+        temp = nodes[refrance].second;
+    }
+    for (int i = 0; i < temp.size(); ++i) {
+        if (RecordID == temp[i].index)
+            return temp[i].reference;
+    }
+    return -1;
 }
