@@ -57,7 +57,7 @@ void BTreeIndex::DeleteRecordFromIndex(char *filename, int RecordID)
         }
         updateParents(parentsPosition);
     }
-    // deletion step done
+    writeToFileReversed(filename);
 }
 void BTreeIndex::updateParents(vector<pair<int, int>> parentsPositions)
 {
@@ -333,100 +333,6 @@ void BTreeIndex::DisplayIndexFileContent(char *filename)
     }
     return;
 }
-int BTreeIndex::InsertNewRecordAtIndex(char* filename, int RecordID, int Reference) {
-    fstream file("../index.txt", ios::in | ios::out);
-    tree.insert(RecordID, Reference);
-    tree.writeToFile(&file);
-    return 0;
-}
-void BTree::writeToFile(fstream *file) {
-    // function to write the btree to the file, each line represents a tree node
-    //  if the node is a leaf node, it writes each key followed by the corresponding reference
-    // if it isn't a leaf, it writes each key followed by the corresponding child record index
-    int counter = 1;
-    queue<Node*> q;
-    queue<Node*> q2;
-    q2.push(this->root);
-    q.push(this->root);
-    Node* current = this->root;
-    //traverse the tree pushing each node to the queue
-    while(!q2.empty()) {
-        current = q2.front();
-        q2.pop();
-        if(!current->isLeaf) {
-            for(auto it = current->children.begin(); it != current->children.end(); it++) {
-                q.push(*it);
-                q2.push(*it);
-                counter++;
-            }
-        }
-    }
-    //write the first line
-    *file << -1 << "\t" << counter + 1 << "\t";
-    for(int i = 0; i < (this->m * 2) - 1; i++) {
-        *file << -1 << "\t";
-    }
-    //write each node to the file
-    int childCounter = 1;
-    counter = 1;
-    queue<pair<int, int>> temp; //queue to hold the keys and references
-    while(!q.empty()) {
-        *file << "\n";
-        current = q.front();
-        q.pop();
-        if(current->isLeaf) {
-            *file << 0 << "\t";
-            for(int i = 0; i < this->m; i++) {
-                if(i == current->keys.size()) {
-                    if(!temp.empty()) {
-                        pair<int, int> tempPair = temp.front();
-                        temp.pop();
-                        *file << tempPair.first << "\t" << tempPair.second << "\t";
-                    } else {
-                        *file << -1 << "\t" << -1 << "\t";
-                    }
-                } else if(i > current->keys.size()) {
-                    *file << -1 << "\t" << -1 << "\t";
-                } else {
-                    *file << current->keys[i] << "\t" << current->references[i] << "\t";
-                }
-            }
-        } else {
-            for(int i = 0; i < current->keys.size(); i++) {
-                temp.push(make_pair(current->keys[i], current->references[i]));
-            }
-            *file << 1 << "\t";
-            for(int i = 0; i < this->m; i++) {
-                if(i > current->keys.size() - 1) {
-                    *file << -1 << "\t" << -1 << "\t";
-                } else {
-                    *file << current->keys[i] << "\t" << childCounter + 1 << "\t";
-                    childCounter++;
-                }
-            }
-        }
-    }
-}
-bool BTree::isEmpty() {
-    return (this->root == nullptr);
-}
-
-void BTree::insertRec(BTree::Node *subTree, int index, int reference) {
-    int i = 0;
-    for(auto it = subTree->keys.begin(); it != subTree->keys.end(); it++) {
-        if(index < *it) {
-            subTree->keys.insert(it, index);
-            break;
-        }
-        if(it + 1 == subTree->keys.end()) {
-            subTree->keys.push_back(index);
-            break;
-        }
-        i++;
-    }
-    subTree->references.insert(subTree->references.begin() + i, reference);
-}
-
 int BTree::insert(int index, int reference) {
     // check if the tree is empty
     if(this->isEmpty()) {
@@ -440,7 +346,9 @@ int BTree::insert(int index, int reference) {
                 Node* left = new Node();
                 Node* right = new Node();
                 node->isLeaf = false;
-                for(int i = 0; i < (this->m) / 2; i++) {
+                left-> isLeaf = true;
+                right-> isLeaf = true;
+                for(int i = 0; i < (this->m) / 2 + 1; i++) {
                     left->keys.push_back(root->keys[i]);
                     left->references.push_back(root->references[i]);
                 }
@@ -448,8 +356,16 @@ int BTree::insert(int index, int reference) {
                     right->keys.push_back(root->keys[i]);
                     right->references.push_back(root->references[i]);
                 }
+                //--------------------------------------------------
                 node->keys.push_back(root->keys[(this->m ) / 2]);
                 node->references.push_back(root->references[(this->m) / 2]);
+                node->keys.push_back(root->keys[(this->m -1 ) ]);
+                node->references.push_back(root->references[(this->m -1)]);
+
+
+//------------------------------------------------------------
+
+
                 right->Parent = node;
                 left->Parent = node;
                 Node * temp = root;
@@ -493,11 +409,13 @@ int BTree::insert(int index, int reference) {
                 i = 0;
                 for(auto it = currentNode->keys.begin(); it != currentNode->keys.end(); it++) {
                     if(index > *it && index < *(it + 1)) {
+
                         currentNode = currentNode->children[i + 1];
                         childIndex = i + 1;
                         break;
                     }
                     if((it + 1) == currentNode->keys.end()) {
+
                         currentNode = currentNode->children[i + 1];
                         childIndex = i + 1;
                         break;
@@ -560,4 +478,158 @@ int BTree::insert(int index, int reference) {
         }
     }
     return 0;
+}
+
+bool BTree::isEmpty() {
+    return (this->root == nullptr);
+}
+
+void BTree::insertRec(BTree::Node *subTree, int index, int reference) {
+    int i = 0;
+    for(auto it = subTree->keys.begin(); it != subTree->keys.end(); it++) {
+        if(index < *it) {
+            subTree->keys.insert(it, index);
+            break;
+        }
+        if(it + 1 == subTree->keys.end()) {
+            subTree->keys.push_back(index);
+            break;
+        }
+        i++;
+    }
+    subTree->references.insert(subTree->references.begin() + i, reference);
+}
+int BTreeIndex::InsertNewRecordAtIndex(char* filename, int RecordID, int Reference) {
+    fstream file("../index.txt", ios::in | ios::out);
+    tree.insert(RecordID, Reference);
+    tree.writeToFile(&file, nodes);
+    writeToFileReversed(filename);
+    return 0;
+}
+
+void BTree::writeToFile(fstream *file, vector<pair<int, vector<node>>>& nodes) {
+    // function to write the btree to the file, each line represents a tree node
+    //  if the node is a leaf node, it writes each key followed by the corresponding reference
+    // if it isn't a leaf, it writes each key followed by the corresponding child record index
+
+    pair<int, vector<node>> recordPair;
+
+    int counter = 1;
+    queue<Node*> q;
+    queue<Node*> q2;
+    q2.push(this->root);
+    q.push(this->root);
+    Node* current = this->root;
+    //traverse the tree pushing each node to the queue
+    while(!q2.empty()) {
+        current = q2.front();
+        q2.pop();
+        if(!current->isLeaf) {
+            for(auto it = current->children.begin(); it != current->children.end(); it++) {
+                q.push(*it);
+                q2.push(*it);
+                counter++;
+            }
+        }
+    }
+    //write the first line
+    nodes.clear();
+    vector<node> nds;
+    nds.push_back({counter + 1, -1});
+    recordPair.first = -1;
+
+    for(int i = 0; i < this->m - 1; i++) {
+        nds.push_back({-1, -1});
+    }
+    recordPair.second = nds;
+    nodes.push_back(recordPair);
+
+
+    //write each node to the file
+    int childCounter = 1;
+    counter = 1;
+    queue<pair<int, int>> temp; //queue to hold the keys and references
+    while(!q.empty()) {
+        nds.clear();
+        *file << "\n";
+        current = q.front();
+        q.pop();
+        if(current->isLeaf) {
+            recordPair.first = 0;
+            for(int i = 0; i < this->m; i++) {
+                if(i == current->keys.size()) {
+                    if (!temp.empty()) {
+                        pair<int, int> tempPair = temp.front();
+                        temp.pop();
+                        if(current->keys[i-1] != tempPair.first)
+                            nds.push_back({tempPair.first, tempPair.second});
+                    } else {
+                        nds.push_back({-1, -1});
+                    }
+                }else if(i > current->keys.size()-1) {
+                    nds.push_back({-1, -1});
+                } else {
+                    nds.push_back({current->keys[i], current->references[i]});
+                }
+            }
+        } else {
+            for(int i = 0; i < current->keys.size(); i++) {
+                temp.push(make_pair(current->keys[i], current->references[i]));
+            }
+            *file << 1 << "\t";
+            for(int i = 0; i < this->m; i++) {
+                if(i > current->keys.size() - 1) {
+                    nds.push_back({-1, -1});
+                } else {
+                    nds.push_back({current->keys[i], childCounter + 1});
+                    childCounter++;
+                }
+            }
+        }
+        recordPair.second = nds;
+        nodes.push_back(recordPair);
+    }
+
+}
+
+void BTreeIndex::writeToFileReversed(char *filename)
+{
+    // Open the file for writing in binary mode
+    ofstream outFile(filename, ios::out | ios::binary);
+
+    if (!outFile.is_open())
+    {
+        cout << "Could not open file for writing" << endl;
+        return;
+    }
+
+    // Write the content in reversed order
+    for (int i = 0; i < nodes.size(); i++)
+    {
+        int indicator = nodes[i].first;
+
+        // Write indicator to file
+         outFile.write(reinterpret_cast<char *>(&indicator), sizeof(indicator));
+        // Write tab character
+         outFile.write("\t", strlen("\t") + 1);
+
+        // Write nodes to file
+        for (const auto &nd : nodes[i].second)
+        {
+            int index = nd.index;
+            int reference = nd.reference;
+
+            // Write index to file
+            outFile.write(reinterpret_cast<char *>(&index), sizeof(index));
+            // Write tab character
+            outFile.write("\t", strlen("\t") + 1);
+            // Write reference to file
+            outFile.write(reinterpret_cast<char *>(&reference), sizeof(reference));
+            // Write tab character
+            outFile.write("\t", strlen("\t") + 1);
+        }
+    }
+
+     // Close the file
+     outFile.close();
 }

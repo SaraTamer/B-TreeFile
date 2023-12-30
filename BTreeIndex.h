@@ -37,7 +37,7 @@ public:
     bool isEmpty(void);
     int insert(int index, int reference);
     void insertRec(Node* subTree, int index, int reference);
-    void writeToFile(fstream* file);
+    void writeToFile(fstream* file, vector<pair<int, vector<node>>>& nodes);
     void setM(int m) {this->m = m; this->root = nullptr;}
 };
 class BTreeIndex {
@@ -64,6 +64,7 @@ public:
     int getRecSize(int recNum);
     void balanceTree(vector<pair<int , int>>);
     void updateParents(vector<pair<int , int>> parentsPositions);
+    void writeToFileReversed(char *filename);
 };
 
 
