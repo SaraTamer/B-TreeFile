@@ -1,10 +1,9 @@
 
-#include "BTreeIndex.cpp"
+#include "BTreeIndex.h"
 #include "bits/stdc++.h"
 
 using namespace std;
-int main()
-{
+int main() {
     BTreeIndex bTreeIndex;
 
     // Get file name from user
