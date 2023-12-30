@@ -195,7 +195,7 @@ void BTreeIndex::loadFile(char *filename)
     for (int i = 0; i < numRecords; i++)
     {
         int indicator;
-        if (indexFile.read(reinterpret_cast<char *>(&indicator), sizeof(indicator)))
+        if (indexFile.read((char *)(&indicator), sizeof(indicator)))
         {
             // skip the tab character
             indexFile.read((char *)(&ch), strlen("\t") + 1);
@@ -206,9 +206,9 @@ void BTreeIndex::loadFile(char *filename)
             {
                 int index, reference;
 
-                if (indexFile.read(reinterpret_cast<char *>(&index), sizeof(index)) &&
+                if (indexFile.read((char *)(&index), sizeof(index)) &&
                     indexFile.read((char *)(&ch), strlen("\t") + 1) &&
-                    indexFile.read(reinterpret_cast<char *>(&reference), sizeof(reference)) &&
+                    indexFile.read((char *)(&reference), sizeof(reference)) &&
                     indexFile.read((char *)(&ch), strlen("\t") + 1))
                 {
                     nd.index = index;
@@ -233,10 +233,10 @@ void BTreeIndex::loadFile(char *filename)
 
     // Close the file
     indexFile.close();
-    return;
 }
 void BTreeIndex::CreateIndexFileFile(char *filename, int numberOfRecords, int m)
 {
+    tree.setM(m);
     numRecords = numberOfRecords;
     slots = (m * 2) + 1;
     M = m;
@@ -280,8 +280,6 @@ void BTreeIndex::CreateIndexFileFile(char *filename, int numberOfRecords, int m)
     }
     indexFile.close();
 
-    // Close the file
-    indexFile.close();
 }
 int BTreeIndex ::SearchARecord(char *filename, int RecordID) {
     loadFile(filename);
@@ -317,7 +315,7 @@ int BTreeIndex ::SearchARecord(char *filename, int RecordID) {
     return -1;
 }
 
-void BTreeIndex::DisplayBTreeContent(char *filename)
+void BTreeIndex::DisplayIndexFileContent(char *filename)
 {
     loadFile(filename);
 
@@ -334,4 +332,232 @@ void BTreeIndex::DisplayBTreeContent(char *filename)
         cout << endl;
     }
     return;
+}
+int BTreeIndex::InsertNewRecordAtIndex(char* filename, int RecordID, int Reference) {
+    fstream file("../index.txt", ios::in | ios::out);
+    tree.insert(RecordID, Reference);
+    tree.writeToFile(&file);
+    return 0;
+}
+void BTree::writeToFile(fstream *file) {
+    // function to write the btree to the file, each line represents a tree node
+    //  if the node is a leaf node, it writes each key followed by the corresponding reference
+    // if it isn't a leaf, it writes each key followed by the corresponding child record index
+    int counter = 1;
+    queue<Node*> q;
+    queue<Node*> q2;
+    q2.push(this->root);
+    q.push(this->root);
+    Node* current = this->root;
+    //traverse the tree pushing each node to the queue
+    while(!q2.empty()) {
+        current = q2.front();
+        q2.pop();
+        if(!current->isLeaf) {
+            for(auto it = current->children.begin(); it != current->children.end(); it++) {
+                q.push(*it);
+                q2.push(*it);
+                counter++;
+            }
+        }
+    }
+    //write the first line
+    *file << -1 << "\t" << counter + 1 << "\t";
+    for(int i = 0; i < (this->m * 2) - 1; i++) {
+        *file << -1 << "\t";
+    }
+    //write each node to the file
+    int childCounter = 1;
+    counter = 1;
+    queue<pair<int, int>> temp; //queue to hold the keys and references
+    while(!q.empty()) {
+        *file << "\n";
+        current = q.front();
+        q.pop();
+        if(current->isLeaf) {
+            *file << 0 << "\t";
+            for(int i = 0; i < this->m; i++) {
+                if(i == current->keys.size()) {
+                    if(!temp.empty()) {
+                        pair<int, int> tempPair = temp.front();
+                        temp.pop();
+                        *file << tempPair.first << "\t" << tempPair.second << "\t";
+                    } else {
+                        *file << -1 << "\t" << -1 << "\t";
+                    }
+                } else if(i > current->keys.size()) {
+                    *file << -1 << "\t" << -1 << "\t";
+                } else {
+                    *file << current->keys[i] << "\t" << current->references[i] << "\t";
+                }
+            }
+        } else {
+            for(int i = 0; i < current->keys.size(); i++) {
+                temp.push(make_pair(current->keys[i], current->references[i]));
+            }
+            *file << 1 << "\t";
+            for(int i = 0; i < this->m; i++) {
+                if(i > current->keys.size() - 1) {
+                    *file << -1 << "\t" << -1 << "\t";
+                } else {
+                    *file << current->keys[i] << "\t" << childCounter + 1 << "\t";
+                    childCounter++;
+                }
+            }
+        }
+    }
+}
+bool BTree::isEmpty() {
+    return (this->root == nullptr);
+}
+
+void BTree::insertRec(BTree::Node *subTree, int index, int reference) {
+    int i = 0;
+    for(auto it = subTree->keys.begin(); it != subTree->keys.end(); it++) {
+        if(index < *it) {
+            subTree->keys.insert(it, index);
+            break;
+        }
+        if(it + 1 == subTree->keys.end()) {
+            subTree->keys.push_back(index);
+            break;
+        }
+        i++;
+    }
+    subTree->references.insert(subTree->references.begin() + i, reference);
+}
+
+int BTree::insert(int index, int reference) {
+    // check if the tree is empty
+    if(this->isEmpty()) {
+        //assign the root to a new node
+        this->root = new Node(index, reference);
+        return 0;
+    } else {
+        if(this->root->isLeaf) {
+            if(root->keys.size() == this->m) {
+                Node* node = new Node();
+                Node* left = new Node();
+                Node* right = new Node();
+                node->isLeaf = false;
+                for(int i = 0; i < (this->m) / 2; i++) {
+                    left->keys.push_back(root->keys[i]);
+                    left->references.push_back(root->references[i]);
+                }
+                for(int i = (this->m) / 2 +1 ; i < this->m; ++i) {
+                    right->keys.push_back(root->keys[i]);
+                    right->references.push_back(root->references[i]);
+                }
+                node->keys.push_back(root->keys[(this->m ) / 2]);
+                node->references.push_back(root->references[(this->m) / 2]);
+                right->Parent = node;
+                left->Parent = node;
+                Node * temp = root;
+                root = node;
+                root->children.push_back(left);
+                root->children.push_back(right);
+                delete temp;
+                //insert
+                if(index > root->keys[0]) {
+                    insertRec(right, index, reference);
+                } else {
+                    insertRec(left, index, reference);
+                }
+            } else {
+                int i = 0;
+                for(auto it = root->keys.begin(); it != root->keys.end(); it++) {
+                    if(index < *it) {
+                        root->keys.insert(it, index);
+                        break;
+                    }
+                    if(it + 1 == root->keys.end()) {
+                        root->keys.push_back(index);
+                        root->references.push_back(reference);
+                        return 0;
+                    }
+                    i++;
+                }
+                root->references.insert(root->references.begin() + i, reference);
+            }
+        } else {
+            Node* currentNode = root;
+            int i = 0;
+            int childIndex = 0;
+
+            while(!currentNode->isLeaf) {
+                if(index < currentNode->keys[0]) {
+                    currentNode = currentNode->children[0];
+                    continue;
+                }
+
+                i = 0;
+                for(auto it = currentNode->keys.begin(); it != currentNode->keys.end(); it++) {
+                    if(index > *it && index < *(it + 1)) {
+                        currentNode = currentNode->children[i + 1];
+                        childIndex = i + 1;
+                        break;
+                    }
+                    if((it + 1) == currentNode->keys.end()) {
+                        currentNode = currentNode->children[i + 1];
+                        childIndex = i + 1;
+                        break;
+                    }
+                    i++;
+                }
+            }
+            // If the leaf node is full, split it
+            if (currentNode->keys.size() == this->m) {
+                Node* parent = currentNode->Parent;
+                Node* left = new Node();
+                Node* right = new Node();
+
+                // Move median key and reference to parent
+                insertRec(parent, currentNode->keys[currentNode->keys.size() / 2], currentNode->references[currentNode->references.size() / 2]);
+
+                // Distribute keys and references between the new nodes
+                for (int j = 0; j < this->m / 2; j++) {
+                    left->keys.push_back(currentNode->keys[j]);
+                    left->references.push_back(currentNode->references[j]);
+                }
+                for (int j = this->m / 2+1 ; j < this->m ; ++j) {
+                    right->keys.push_back(currentNode->keys[j]);
+                    right->references.push_back(currentNode->references[j]);
+                }
+
+                // Update parent pointers for the new nodes
+                left->Parent = parent;
+                right->Parent = parent;
+
+                // Replace full leaf node with two new nodes in the parent
+                Node* oldChild = parent->children[childIndex];
+                parent->children.erase(parent->children.begin() + childIndex);
+                parent->children.insert(parent->children.begin() + childIndex, left);
+                parent->children.insert(parent->children.begin() + childIndex + 1, right);
+
+                // Continue the insertion
+                if (index > parent->keys[0]) {
+                    insertRec(right, index, reference);
+                } else {
+                    insertRec(left, index, reference);
+                }
+            } else {
+                // Insert directly into the leaf node (not full)
+                int i = 0;
+                for (auto it = currentNode->keys.begin(); it != currentNode->keys.end(); it++) {
+                    if (index < *it) {
+                        currentNode->keys.insert(it, index);
+                        currentNode->references.insert(currentNode->references.begin() + i, reference);
+                        break;
+                    }
+                    if (it + 1 == currentNode->keys.end()) {
+                        currentNode->keys.push_back(index);
+                        currentNode->references.push_back(reference);
+                        break;
+                    }
+                    i++;
+                }
+            }
+        }
+    }
+    return 0;
 }
