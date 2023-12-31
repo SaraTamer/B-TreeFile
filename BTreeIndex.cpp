@@ -3,7 +3,7 @@
 //
 
 #include "BTreeIndex.h"
-#include "bits/stdc++.h"
+#include "bits-stdc++.h"
 
 using namespace std;
 
@@ -11,7 +11,6 @@ BTreeIndex::BTreeIndex() = default;
 
 void BTreeIndex::DeleteRecordFromIndex(char *filename, int RecordID)
 {
-    loadFile(filename);
     /// TODO: if recordId is not found , return;
 
     vector<pair<int, int>> parentsPosition;
@@ -68,7 +67,7 @@ void BTreeIndex::updateParents(vector<pair<int, int>> parentsPositions)
         int j = parentsPositions[k].second;
         int recNum = nodes[i].second[j].reference;
         int prevBrotherRecNum = nodes[i].second[j - 1].reference;
-        int nextBrotherRecNum = nodes[i].second[j - 1].reference;
+        int nextBrotherRecNum = nodes[i].second[j + 1].reference;
         if (nodes[recNum].first == -1)
         {
             nodes[i].second.erase(nodes[i].second.begin() + j);
@@ -234,14 +233,62 @@ void BTreeIndex::loadFile(char *filename)
 
     // Close the file
     indexFile.close();
+
+    //// for testing
+    while(true)
+    {
+        int choice, recId, reference;
+        cout << "1- Display The file.\n"
+                "2- Insert an index.\n"
+                "3- Delete an index.\n"
+                "4- Search for an index.\n";
+        cin >> choice;
+        switch (choice) {
+            case 1:
+                DisplayIndexFileContent(filename);
+                break;
+            case 2:
+                InsertNewRecordAtIndex(filename, 3,30);
+                InsertNewRecordAtIndex(filename, 2,20);
+                InsertNewRecordAtIndex(filename, 5,50);
+                InsertNewRecordAtIndex(filename, 10,100);
+                InsertNewRecordAtIndex(filename, 7,70);
+                InsertNewRecordAtIndex(filename, 6,60);
+                InsertNewRecordAtIndex(filename, 9,90);
+                InsertNewRecordAtIndex(filename, 1,10);
+                InsertNewRecordAtIndex(filename, 4,40);
+                InsertNewRecordAtIndex(filename, 8,80);
+                InsertNewRecordAtIndex(filename, 11,110);
+                DisplayIndexFileContent(filename);
+
+//                cout << "Enter the record id: ";
+//                cin >> recId;
+//                cout << "Enter the record reference: ";
+//                cin >> reference;
+//                InsertNewRecordAtIndex(filename,recId, reference);
+                break;
+            case 3:
+                cout << "Enter the record id: ";
+                cin >> recId;
+                DeleteRecordFromIndex(filename, recId);
+                break;
+            case 4:
+                cout << "Enter the record id: ";
+                cin >> recId;
+                SearchARecord(filename, recId);
+                break;
+            case 5:
+                return;
+        }
+    }
+
 }
 int BTreeIndex ::SearchARecord(char *filename, int RecordID) {
-    loadFile(filename);
     int leaf = nodes[1].first;
     int refrance = 900;
     vector<node> temp = nodes[1].second;
     if (leaf == -1)
-        return leaf;
+        return -1;
     if (leaf == 0) {
         for (int i = 0; i < temp.size(); ++i) {
             if (RecordID == temp[i].index)
@@ -270,7 +317,6 @@ int BTreeIndex ::SearchARecord(char *filename, int RecordID) {
 }
 void BTreeIndex::DisplayIndexFileContent(char *filename)
 {
-    loadFile(filename);
 
     // Iterate through the vector and print each pair
     for (int i = 0; i < nodes.size(); i++)
@@ -287,175 +333,12 @@ void BTreeIndex::DisplayIndexFileContent(char *filename)
     return;
 }
 
-int BTree::insert(int index, int reference) {
-    // check if the tree is empty
-    if(this->isEmpty()) {
-        //assign the root to a new node
-        this->root = new Node(index, reference);
-        return 0;
-    } else {
-        if(this->root->isLeaf) {
-            if(root->keys.size() == this->m) {
-                Node* node = new Node();
-                Node* left = new Node();
-                Node* right = new Node();
-                node->isLeaf = false;
-                left-> isLeaf = true;
-                right-> isLeaf = true;
-                for(int i = 0; i < (this->m) / 2 + 1; i++) {
-                    left->keys.push_back(root->keys[i]);
-                    left->references.push_back(root->references[i]);
-                }
-                for(int i = (this->m) / 2 +1 ; i < this->m; ++i) {
-                    right->keys.push_back(root->keys[i]);
-                    right->references.push_back(root->references[i]);
-                }
-                //--------------------------------------------------
-                node->keys.push_back(root->keys[(this->m ) / 2]);
-                node->references.push_back(root->references[(this->m) / 2]);
-                node->keys.push_back(root->keys[(this->m -1 ) ]);
-                node->references.push_back(root->references[(this->m -1)]);
-
-
-//------------------------------------------------------------
-
-
-                right->Parent = node;
-                left->Parent = node;
-                Node * temp = root;
-                root = node;
-                root->children.push_back(left);
-                root->children.push_back(right);
-                delete temp;
-                //insert
-                if(index > root->keys[0]) {
-                    insertRec(right, index, reference);
-                } else {
-                    insertRec(left, index, reference);
-                }
-            } else {
-                int i = 0;
-                for(auto it = root->keys.begin(); it != root->keys.end(); it++) {
-                    if(index < *it) {
-                        root->keys.insert(it, index);
-                        break;
-                    }
-                    if(it + 1 == root->keys.end()) {
-                        root->keys.push_back(index);
-                        root->references.push_back(reference);
-                        return 0;
-                    }
-                    i++;
-                }
-                root->references.insert(root->references.begin() + i, reference);
-            }
-        } else {
-            Node* currentNode = root;
-            int i = 0;
-            int childIndex = 0;
-
-            while(!currentNode->isLeaf) {
-                if(index < currentNode->keys[0]) {
-                    currentNode = currentNode->children[0];
-                    continue;
-                }
-
-                i = 0;
-                for(auto it = currentNode->keys.begin(); it != currentNode->keys.end(); it++) {
-                    if(index > *it && index < *(it + 1)) {
-
-                        currentNode = currentNode->children[i + 1];
-                        childIndex = i + 1;
-                        break;
-                    }
-                    if((it + 1) == currentNode->keys.end()) {
-
-                        currentNode = currentNode->children[i + 1];
-                        childIndex = i + 1;
-                        break;
-                    }
-                    i++;
-                }
-            }
-            // If the leaf node is full, split it
-            if (currentNode->keys.size() == this->m) {
-                Node* parent = currentNode->Parent;
-                Node* left = new Node();
-                Node* right = new Node();
-
-                // Move median key and reference to parent
-                insertRec(parent, currentNode->keys[currentNode->keys.size() / 2], currentNode->references[currentNode->references.size() / 2]);
-
-                // Distribute keys and references between the new nodes
-                for (int j = 0; j < this->m / 2; j++) {
-                    left->keys.push_back(currentNode->keys[j]);
-                    left->references.push_back(currentNode->references[j]);
-                }
-                for (int j = this->m / 2+1 ; j < this->m ; ++j) {
-                    right->keys.push_back(currentNode->keys[j]);
-                    right->references.push_back(currentNode->references[j]);
-                }
-
-                // Update parent pointers for the new nodes
-                left->Parent = parent;
-                right->Parent = parent;
-
-                // Replace full leaf node with two new nodes in the parent
-                Node* oldChild = parent->children[childIndex];
-                parent->children.erase(parent->children.begin() + childIndex);
-                parent->children.insert(parent->children.begin() + childIndex, left);
-                parent->children.insert(parent->children.begin() + childIndex + 1, right);
-
-                // Continue the insertion
-                if (index > parent->keys[0]) {
-                    insertRec(right, index, reference);
-                } else {
-                    insertRec(left, index, reference);
-                }
-            } else {
-                // Insert directly into the leaf node (not full)
-                int i = 0;
-                for (auto it = currentNode->keys.begin(); it != currentNode->keys.end(); it++) {
-                    if (index < *it) {
-                        currentNode->keys.insert(it, index);
-                        currentNode->references.insert(currentNode->references.begin() + i, reference);
-                        break;
-                    }
-                    if (it + 1 == currentNode->keys.end()) {
-                        currentNode->keys.push_back(index);
-                        currentNode->references.push_back(reference);
-                        break;
-                    }
-                    i++;
-                }
-            }
-        }
-    }
-    return 0;
-}
-bool BTree::isEmpty() {
-    return (this->root == nullptr);
-}
-
-void BTree::insertRec(BTree::Node *subTree, int index, int reference) {
-    int i = 0;
-    for(auto it = subTree->keys.begin(); it != subTree->keys.end(); it++) {
-        if(index < *it) {
-            subTree->keys.insert(it, index);
-            break;
-        }
-        if(it + 1 == subTree->keys.end()) {
-            subTree->keys.push_back(index);
-            break;
-        }
-        i++;
-    }
-    subTree->references.insert(subTree->references.begin() + i, reference);
-}
-
 int BTreeIndex::InsertNewRecordAtIndex(char* filename, int RecordID, int Reference) {
-    loadFile(filename);
 
+    if(SearchARecord(filename, RecordID) != -1)
+    {
+        return - 1;
+    }
     vector<pair<int,int>> parentsPositions;
 
     vector<node> currentRec = nodes[1].second;
@@ -465,126 +348,91 @@ int BTreeIndex::InsertNewRecordAtIndex(char* filename, int RecordID, int Referen
     {
         for(int j = 0; j < nodes[i].second.size(); j++)
         {
-            if(nodes[i].second[j].index >= RecordID)
+            if(nodes[i].second[j].index > RecordID)
             {
-                parentsPositions.push_back({i,j});
-                i++;
+                parentsPositions.emplace_back(i,j);
+                i = nodes[i].second[j].reference;
                 indicator = nodes[i].first;
+                break;
             }
         }
     }
 
-    if(nodes[i].second.size() == M)
-    {
-//        if(i == 1)
-//        {
-//            int nextEmptyRec = nodes[0].second[0].index;
-//            if(nextEmptyRec != -1)
-//            {
-//                nodes[i].second.push_back({RecordID, Reference});
-//                sort(nodes[i].second.begin(), nodes[i].second.end());
-//                nodes[nextEmptyRec].second.insert(nodes[nextEmptyRec].second.end(), nodes[i].second.begin()+M/2+1, nodes[i].second.end());
-//                // update next empty rec
-//
-//                nodes[nextEmptyRec].second.insert(nodes[nextEmptyRec].second.end(), nodes[i].second.begin()+M/2+1, nodes[i].second.end());
-//
-//            }
-//        }else if()
+    if(getRecSize(i) == M) {
+        if (i == 1) {
+            nodes[1].second.push_back({RecordID, Reference});
+            sort(nodes[i].second.begin(), nodes[i].second.begin() + getRecSize(i) + 1);
+            nodes[1].first = 1;
+            if(nodes[2].first == -1 && nodes[2].first == -1)
+            {
+                nodes[2].first = 0;
+                nodes[3].first = 0;
+                nodes[0].second[0].index = nodes[3].second[0].index;
+                nodes[2].second[0].index = -1;
+                nodes[3].second[0].index = -1;
+            }
+            nodes[2].second.insert(nodes[2].second.begin(), nodes[1].second.begin(),
+                                   nodes[1].second.begin() + M / 2 + 1);
+            fill(nodes[2].second.begin()+ M/2+1, nodes[2].second.end() , node{-1, -1});
+            // update next empty rec
+            nodes[3].second.insert(nodes[3].second.begin(), nodes[1].second.begin() + M / 2 + 1, nodes[1].second.end());
+            fill(nodes[3].second.begin()+ M/2+1, nodes[3].second.end() , node{-1, -1});
+            nodes[2].second.resize(M);
+            nodes[3].second.resize(M);
 
+            nodes[1].second.insert(nodes[1].second.begin(), node{nodes[3].second[getRecSize(3) - 1].index, 3});
+            nodes[1].second.insert(nodes[1].second.begin(), node{nodes[2].second[getRecSize(2) - 1].index,2});
+            fill(nodes[1].second.begin() + 2, nodes[1].second.end() , node{-1, -1});
+            nodes[1].second.resize(M);
+        } else if (getRecSize(parentsPositions[parentsPositions.size() - 1].first) == M) {
+            int nextEmptyRec = nodes[0].second[0].index;
+
+        }
+        else
+        {
+            int nextEmptyRec = nodes[0].second[0].index;
+            if(nextEmptyRec != -1)
+            {
+                nodes[i].second.push_back({RecordID, Reference});
+                sort(nodes[i].second.begin(), nodes[i].second.end());
+
+                nodes[nextEmptyRec].first = 1;
+                nodes[nextEmptyRec].second.insert(nodes[i].second.begin(), nodes[i].second.begin() + M/2+1, nodes[i].second.end());
+                nodes[nextEmptyRec].second.resize(M);
+                fill(nodes[i].second.begin()+ M/2+1, nodes[i].second.end() , node{-1, -1});
+                // update next empty record
+                int j = 0;
+                for(; j < nodes.size(); j++)
+                {
+                    if(nodes[j].first == -1)
+                    {
+                        nextEmptyRec = j;
+                        nodes[0].second[0].index = j;
+                        break;
+                    }
+                }
+                if(j == nextEmptyRec) {
+                    nodes[0].second[0].index = -1;
+                }
+            }
+        }
     }
     else
     {
-        nodes[i].second.push_back({RecordID, Reference});
-        sort(nodes[i].second.begin(), nodes[i].second.end());
+        if(nodes[i].first == -1)
+        {
+            nodes[i].first = 0;
+            nodes[0].second[0].index = nodes[i].second[0].index;
+            nodes[i].second[0].index = -1;
+        }
+        nodes[i].second.insert(nodes[i].second.begin(), {RecordID, Reference});
+        nodes[i].second.resize(M);
+        sort(nodes[i].second.begin(), nodes[i].second.begin() + getRecSize(i));
         updateParents(parentsPositions);
     }
 
     writeToFileReversed(filename);
     return 0;
-}
-void BTree::writeToFile(fstream *file, vector<pair<int, vector<node>>>& nodes) {
-    // function to write the btree to the file, each line represents a tree node
-    //  if the node is a leaf node, it writes each key followed by the corresponding reference
-    // if it isn't a leaf, it writes each key followed by the corresponding child record index
-
-    pair<int, vector<node>> recordPair;
-
-    int counter = 1;
-    queue<Node*> q;
-    queue<Node*> q2;
-    q2.push(this->root);
-    q.push(this->root);
-    Node* current = this->root;
-    //traverse the tree pushing each node to the queue
-    while(!q2.empty()) {
-        current = q2.front();
-        q2.pop();
-        if(!current->isLeaf) {
-            for(auto it = current->children.begin(); it != current->children.end(); it++) {
-                q.push(*it);
-                q2.push(*it);
-                counter++;
-            }
-        }
-    }
-    //write the first line
-    nodes.clear();
-    vector<node> nds;
-    nds.push_back({counter + 1, -1});
-    recordPair.first = -1;
-
-    for(int i = 0; i < this->m - 1; i++) {
-        nds.push_back({-1, -1});
-    }
-    recordPair.second = nds;
-    nodes.push_back(recordPair);
-
-
-    //write each node to the file
-    int childCounter = 1;
-    counter = 1;
-    queue<pair<int, int>> temp; //queue to hold the keys and references
-    while(!q.empty()) {
-        nds.clear();
-        *file << "\n";
-        current = q.front();
-        q.pop();
-        if(current->isLeaf) {
-            recordPair.first = 0;
-            for(int i = 0; i < this->m; i++) {
-                if(i == current->keys.size()) {
-                    if (!temp.empty()) {
-                        pair<int, int> tempPair = temp.front();
-                        temp.pop();
-                        if(current->keys[i-1] != tempPair.first)
-                            nds.push_back({tempPair.first, tempPair.second});
-                    } else {
-                        nds.push_back({-1, -1});
-                    }
-                }else if(i > current->keys.size()-1) {
-                    nds.push_back({-1, -1});
-                } else {
-                    nds.push_back({current->keys[i], current->references[i]});
-                }
-            }
-        } else {
-            for(int i = 0; i < current->keys.size(); i++) {
-                temp.push(make_pair(current->keys[i], current->references[i]));
-            }
-            *file << 1 << "\t";
-            for(int i = 0; i < this->m; i++) {
-                if(i > current->keys.size() - 1) {
-                    nds.push_back({-1, -1});
-                } else {
-                    nds.push_back({current->keys[i], childCounter + 1});
-                    childCounter++;
-                }
-            }
-        }
-        recordPair.second = nds;
-        nodes.push_back(recordPair);
-    }
-
 }
 
 void BTreeIndex::writeToFileReversed(char *filename)
@@ -632,7 +480,6 @@ void BTreeIndex::writeToFileReversed(char *filename)
 
 void BTreeIndex::CreateIndexFileFile(char *filename, int numberOfRecords, int m)
 {
-    tree.setM(m);
     numRecords = numberOfRecords;
     slots = (m * 2) + 1;
     M = m;
