@@ -454,9 +454,51 @@ void BTree::insertRec(BTree::Node *subTree, int index, int reference) {
 }
 
 int BTreeIndex::InsertNewRecordAtIndex(char* filename, int RecordID, int Reference) {
-    fstream file(filename, ios::in | ios::out);
-    tree.insert(RecordID, Reference);
-    tree.writeToFile(&file, nodes);
+    loadFile(filename);
+
+    vector<pair<int,int>> parentsPositions;
+
+    vector<node> currentRec = nodes[1].second;
+    int indicator = nodes[1].first;
+    int i = 1;
+    while(indicator == 1)
+    {
+        for(int j = 0; j < nodes[i].second.size(); j++)
+        {
+            if(nodes[i].second[j].index >= RecordID)
+            {
+                parentsPositions.push_back({i,j});
+                i++;
+                indicator = nodes[i].first;
+            }
+        }
+    }
+
+    if(nodes[i].second.size() == M)
+    {
+//        if(i == 1)
+//        {
+//            int nextEmptyRec = nodes[0].second[0].index;
+//            if(nextEmptyRec != -1)
+//            {
+//                nodes[i].second.push_back({RecordID, Reference});
+//                sort(nodes[i].second.begin(), nodes[i].second.end());
+//                nodes[nextEmptyRec].second.insert(nodes[nextEmptyRec].second.end(), nodes[i].second.begin()+M/2+1, nodes[i].second.end());
+//                // update next empty rec
+//
+//                nodes[nextEmptyRec].second.insert(nodes[nextEmptyRec].second.end(), nodes[i].second.begin()+M/2+1, nodes[i].second.end());
+//
+//            }
+//        }else if()
+
+    }
+    else
+    {
+        nodes[i].second.push_back({RecordID, Reference});
+        sort(nodes[i].second.begin(), nodes[i].second.end());
+        updateParents(parentsPositions);
+    }
+
     writeToFileReversed(filename);
     return 0;
 }
