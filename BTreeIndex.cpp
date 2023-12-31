@@ -85,6 +85,8 @@ void BTreeIndex::updateParents(vector<pair<int, int>> parentsPositions)
             else
                 nodes[i].second[j + 1].index = nodes[nextBrotherRecNum].second[getRecSize(nextBrotherRecNum) - 1].index;
         }
+        sort(nodes[i].second.begin(), nodes[i].second.begin() + getRecSize(i));
+
     }
 }
 void BTreeIndex::balanceTree(vector<pair<int, int>> parentsPositions)
@@ -163,7 +165,7 @@ int BTreeIndex::getRecSize(int recNum)
     int size = 0;
     for (int i = 0; i < nodes[0].second.size(); i++)
     {
-        if (nodes[recNum].second[i].index != -1)
+        if (nodes[recNum].second[i].reference != -1)
         {
             size++;
         }
@@ -234,53 +236,7 @@ void BTreeIndex::loadFile(char *filename)
     // Close the file
     indexFile.close();
 
-    //// for testing
-    while(true)
-    {
-        int choice, recId, reference;
-        cout << "1- Display The file.\n"
-                "2- Insert an index.\n"
-                "3- Delete an index.\n"
-                "4- Search for an index.\n";
-        cin >> choice;
-        switch (choice) {
-            case 1:
-                DisplayIndexFileContent(filename);
-                break;
-            case 2:
-                InsertNewRecordAtIndex(filename, 3,30);
-                InsertNewRecordAtIndex(filename, 2,20);
-                InsertNewRecordAtIndex(filename, 5,50);
-                InsertNewRecordAtIndex(filename, 10,100);
-                InsertNewRecordAtIndex(filename, 7,70);
-                InsertNewRecordAtIndex(filename, 6,60);
-                InsertNewRecordAtIndex(filename, 9,90);
-                InsertNewRecordAtIndex(filename, 1,10);
-                InsertNewRecordAtIndex(filename, 4,40);
-                InsertNewRecordAtIndex(filename, 8,80);
-                InsertNewRecordAtIndex(filename, 11,110);
-                DisplayIndexFileContent(filename);
 
-//                cout << "Enter the record id: ";
-//                cin >> recId;
-//                cout << "Enter the record reference: ";
-//                cin >> reference;
-//                InsertNewRecordAtIndex(filename,recId, reference);
-                break;
-            case 3:
-                cout << "Enter the record id: ";
-                cin >> recId;
-                DeleteRecordFromIndex(filename, recId);
-                break;
-            case 4:
-                cout << "Enter the record id: ";
-                cin >> recId;
-                SearchARecord(filename, recId);
-                break;
-            case 5:
-                return;
-        }
-    }
 
 }
 int BTreeIndex ::SearchARecord(char *filename, int RecordID) {
@@ -346,9 +302,16 @@ int BTreeIndex::InsertNewRecordAtIndex(char* filename, int RecordID, int Referen
     int i = 1;
     while(indicator == 1)
     {
-        for(int j = 0; j < nodes[i].second.size(); j++)
+        for(int j = 0; j < getRecSize(i); j++)
         {
             if(nodes[i].second[j].index > RecordID)
+            {
+                parentsPositions.emplace_back(i,j);
+                i = nodes[i].second[j].reference;
+                indicator = nodes[i].first;
+                break;
+            }
+            else if(j == getRecSize(i)-1)
             {
                 parentsPositions.emplace_back(i,j);
                 i = nodes[i].second[j].reference;
@@ -384,8 +347,56 @@ int BTreeIndex::InsertNewRecordAtIndex(char* filename, int RecordID, int Referen
             nodes[1].second.insert(nodes[1].second.begin(), node{nodes[2].second[getRecSize(2) - 1].index,2});
             fill(nodes[1].second.begin() + 2, nodes[1].second.end() , node{-1, -1});
             nodes[1].second.resize(M);
-        } else if (getRecSize(parentsPositions[parentsPositions.size() - 1].first) == M) {
-            int nextEmptyRec = nodes[0].second[0].index;
+        }
+        else if (getRecSize(parentsPositions[parentsPositions.size() - 1].first) == M)
+        {
+            int firstNextEmptyRec = nodes[0].second[0].index;       // to split the leaf
+            int secondNextEmptyRec = nodes[firstNextEmptyRec].second[0].index;      // for the first parent
+            int thirdNextEmptyRec = nodes[secondNextEmptyRec].second[0].index;      // for the second parent
+            // needs 3 empty lines to split
+            if(firstNextEmptyRec != -1 && secondNextEmptyRec != -1 && thirdNextEmptyRec != -1)
+            {
+                nodes[i].second.push_back({RecordID, Reference});
+                sort(nodes[i].second.begin(), nodes[i].second.end());
+
+                // update next empty record
+                nodes[0].second[0].index = nodes[thirdNextEmptyRec].second[0].index;
+                // no more empty lines
+                nodes[firstNextEmptyRec].second[0].index = -1;
+                nodes[secondNextEmptyRec].second[0].index = -1;
+                nodes[thirdNextEmptyRec].second[0].index = -1;
+                // child or parent
+                nodes[firstNextEmptyRec].first = 0;
+                nodes[secondNextEmptyRec].first = 1;
+                nodes[thirdNextEmptyRec].first = 1;
+                // handle the new leaf
+                nodes[firstNextEmptyRec].second.insert(nodes[firstNextEmptyRec].second.begin(),
+                                nodes[i].second.begin() + M / 2 + 1, nodes[i].second.end());
+                nodes[firstNextEmptyRec].second.resize(M);
+                fill(nodes[i].second.begin()+ M/2+1, nodes[i].second.end() , node{-1, -1});
+                nodes[i].second.resize(M);
+                // handle the new parents
+                int oldParent = parentsPositions[parentsPositions.size() - 1].first;
+                nodes[oldParent].second.push_back({nodes[firstNextEmptyRec].second[getRecSize(firstNextEmptyRec)-1].index, firstNextEmptyRec});
+                updateParents(parentsPositions);
+
+                sort(nodes[oldParent].second.begin(), nodes[oldParent].second.end());
+                nodes[secondNextEmptyRec].second.insert(nodes[secondNextEmptyRec].second.begin(),
+                               nodes[oldParent].second.begin(), nodes[oldParent].second.begin() + M/2 + 1);
+
+                nodes[thirdNextEmptyRec].second.insert(nodes[thirdNextEmptyRec].second.begin(),
+                               nodes[oldParent].second.begin() + M/2 + 1, nodes[oldParent].second.end());
+                nodes[secondNextEmptyRec].second.resize(M);
+                nodes[thirdNextEmptyRec].second.resize(M);
+
+                // handle the old parent
+                nodes[oldParent].second[0].index = nodes[secondNextEmptyRec].second[getRecSize(secondNextEmptyRec) - 1].index;
+                nodes[oldParent].second[0].reference = secondNextEmptyRec;
+                nodes[oldParent].second[1].index = nodes[thirdNextEmptyRec].second[getRecSize(thirdNextEmptyRec) - 1].index;
+                nodes[oldParent].second[1].reference = thirdNextEmptyRec;
+                nodes[oldParent].second.resize(M);
+                fill(nodes[oldParent].second.begin() + 2, nodes[oldParent].second.end(), node{-1 ,-1});
+            }
 
         }
         else
@@ -396,24 +407,21 @@ int BTreeIndex::InsertNewRecordAtIndex(char* filename, int RecordID, int Referen
                 nodes[i].second.push_back({RecordID, Reference});
                 sort(nodes[i].second.begin(), nodes[i].second.end());
 
-                nodes[nextEmptyRec].first = 1;
-                nodes[nextEmptyRec].second.insert(nodes[i].second.begin(), nodes[i].second.begin() + M/2+1, nodes[i].second.end());
+                // update next empty record
+                nodes[0].second[0].index = nodes[nextEmptyRec].second[0].index;
+                nodes[nextEmptyRec].second[0].index = -1;
+                nodes[nextEmptyRec].first = 0;
+                nodes[nextEmptyRec].second.insert(nodes[nextEmptyRec].second.begin(), nodes[i].second.begin() + M/2+1, nodes[i].second.end());
                 nodes[nextEmptyRec].second.resize(M);
                 fill(nodes[i].second.begin()+ M/2+1, nodes[i].second.end() , node{-1, -1});
-                // update next empty record
-                int j = 0;
-                for(; j < nodes.size(); j++)
-                {
-                    if(nodes[j].first == -1)
-                    {
-                        nextEmptyRec = j;
-                        nodes[0].second[0].index = j;
-                        break;
-                    }
-                }
-                if(j == nextEmptyRec) {
-                    nodes[0].second[0].index = -1;
-                }
+                nodes[i].second.resize(M);
+
+                int x = parentsPositions[parentsPositions.size() - 1].first;
+                int y = getRecSize(x)-1;
+                nodes[x].second[getRecSize(x)].reference = nextEmptyRec;
+                nodes[x].second[getRecSize(x)-1].index = nodes[nextEmptyRec].second[getRecSize(nextEmptyRec)-1].index;
+                sort(nodes[x].second.begin(), nodes[x].second.begin() + getRecSize(x)-1);
+                updateParents(parentsPositions);
             }
         }
     }
