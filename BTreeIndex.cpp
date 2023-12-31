@@ -11,7 +11,8 @@ BTreeIndex::BTreeIndex() = default;
 
 void BTreeIndex::DeleteRecordFromIndex(char *filename, int RecordID)
 {
-    /// TODO: if recordId is not found , return;
+    if(SearchARecord(filename, RecordID) == -1)
+        return;
 
     vector<pair<int, int>> parentsPosition;
 
