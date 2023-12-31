@@ -220,6 +220,7 @@ void BTreeIndex::loadFile(char *filename)
                     break;
                 }
             }
+            indexFile.read((char *)(&ch), strlen("\t") + 1);
             recordPair.first = indicator;
             recordPair.second = nds;
 
@@ -233,53 +234,6 @@ void BTreeIndex::loadFile(char *filename)
 
     // Close the file
     indexFile.close();
-}
-void BTreeIndex::CreateIndexFileFile(char *filename, int numberOfRecords, int m)
-{
-    tree.setM(m);
-    numRecords = numberOfRecords;
-    slots = (m * 2) + 1;
-    M = m;
-    // Open the file for writing in binary mode
-    indexFile.open(filename, ios::out | ios::binary);
-
-    if (!indexFile.is_open())
-    {
-        cout << "Could not open index file" << endl;
-        return;
-    }
-
-    // Counter to keep track of record IDs
-    int count = 1;
-
-    // Loop through each record and write a line to the file
-    for (int i = 0; i < numberOfRecords; i++)
-    {
-        for (int j = 0; j < (m * 2) + 1; j++)
-        {
-            // Write record ID in the second column
-            if (j == 1 && i != (numberOfRecords - 1))
-            {
-                indexFile.write(reinterpret_cast<char *>(&count), sizeof(count));
-                indexFile.write("\t", strlen("\t") + 1);
-                count++;
-                continue;
-            }
-
-            // Fill other columns with -1
-            int value = -1;
-            indexFile.write(reinterpret_cast<char *>(&value), sizeof(value));
-
-            // Write a tab character unless it's the last column
-            if (j < ((m * 2) + 1) - 1)
-            {
-                indexFile.write("\t", strlen("\t") + 1);
-            }
-        }
-        indexFile.write("\n", strlen("\n") + 1);
-    }
-    indexFile.close();
-
 }
 int BTreeIndex ::SearchARecord(char *filename, int RecordID) {
     loadFile(filename);
@@ -314,7 +268,6 @@ int BTreeIndex ::SearchARecord(char *filename, int RecordID) {
     }
     return -1;
 }
-
 void BTreeIndex::DisplayIndexFileContent(char *filename)
 {
     loadFile(filename);
@@ -333,6 +286,7 @@ void BTreeIndex::DisplayIndexFileContent(char *filename)
     }
     return;
 }
+
 int BTree::insert(int index, int reference) {
     // check if the tree is empty
     if(this->isEmpty()) {
@@ -479,7 +433,6 @@ int BTree::insert(int index, int reference) {
     }
     return 0;
 }
-
 bool BTree::isEmpty() {
     return (this->root == nullptr);
 }
@@ -499,14 +452,14 @@ void BTree::insertRec(BTree::Node *subTree, int index, int reference) {
     }
     subTree->references.insert(subTree->references.begin() + i, reference);
 }
+
 int BTreeIndex::InsertNewRecordAtIndex(char* filename, int RecordID, int Reference) {
-    fstream file("../index.txt", ios::in | ios::out);
+    fstream file(filename, ios::in | ios::out);
     tree.insert(RecordID, Reference);
     tree.writeToFile(&file, nodes);
     writeToFileReversed(filename);
     return 0;
 }
-
 void BTree::writeToFile(fstream *file, vector<pair<int, vector<node>>>& nodes) {
     // function to write the btree to the file, each line represents a tree node
     //  if the node is a leaf node, it writes each key followed by the corresponding reference
@@ -628,8 +581,56 @@ void BTreeIndex::writeToFileReversed(char *filename)
             // Write tab character
             outFile.write("\t", strlen("\t") + 1);
         }
+        outFile.write("\n", strlen("\n"));
     }
 
      // Close the file
      outFile.close();
+}
+
+void BTreeIndex::CreateIndexFileFile(char *filename, int numberOfRecords, int m)
+{
+    tree.setM(m);
+    numRecords = numberOfRecords;
+    slots = (m * 2) + 1;
+    M = m;
+    // Open the file for writing in binary mode
+    indexFile.open(filename, ios::out | ios::binary);
+
+    if (!indexFile.is_open())
+    {
+        cout << "Could not open index file" << endl;
+        return;
+    }
+
+    // Counter to keep track of record IDs
+    int count = 1;
+
+    // Loop through each record and write a line to the file
+    for (int i = 0; i < numberOfRecords; i++)
+    {
+        for (int j = 0; j < (m * 2) + 1; j++)
+        {
+            // Write record ID in the second column
+            if (j == 1 && i != (numberOfRecords - 1))
+            {
+                indexFile.write(reinterpret_cast<char *>(&count), sizeof(count));
+                indexFile.write("\t", strlen("\t") + 1);
+                count++;
+                continue;
+            }
+
+            // Fill other columns with -1
+            int value = -1;
+            indexFile.write(reinterpret_cast<char *>(&value), sizeof(value));
+
+            // Write a tab character unless it's the last column
+
+            indexFile.write("\t", strlen("\t") + 1);
+
+        }
+        indexFile.write("\n", strlen("\n") + 1);
+    }
+    indexFile.close();
+
 }
